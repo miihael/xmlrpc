@@ -32,6 +32,9 @@ type clientCodec struct {
 
 	// ready presents channel, that is used to link request and it`s response.
 	ready chan uint64
+
+	authUser string
+	authPassword string
 }
 
 func (codec *clientCodec) WriteRequest(request *rpc.Request, args interface{}) (err error) {
@@ -45,6 +48,10 @@ func (codec *clientCodec) WriteRequest(request *rpc.Request, args interface{}) (
 
 	if err != nil {
 		return err
+	}
+
+	if codec.authUser != "" {
+	    httpRequest.SetBasicAuth(codec.authUser, codec.authPassword)
 	}
 
 	var httpResponse *http.Response
@@ -113,7 +120,7 @@ func (codec *clientCodec) Close() error {
 }
 
 // NewClient returns instance of rpc.Client object, that is used to send request to xmlrpc service.
-func NewClient(requrl string, transport http.RoundTripper) (*Client, error) {
+func NewClient(requrl string, transport http.RoundTripper, username string, password string) (*Client, error) {
 	if transport == nil {
 		transport = http.DefaultTransport
 	}
@@ -138,6 +145,8 @@ func NewClient(requrl string, transport http.RoundTripper) (*Client, error) {
 		ready:      make(chan uint64),
 		responses:  make(map[uint64]*http.Response),
 		cookies:    jar,
+		authUser:   username,
+		authPassword: password,
 	}
 
 	return &Client{rpc.NewClientWithCodec(&codec)}, nil
